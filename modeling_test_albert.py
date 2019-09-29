@@ -20,16 +20,17 @@ import collections
 import json
 import random
 import re
-
-import numpy as np 
-import modeling
+import numpy as np
+import pdb 
+import modeling_albert
 import six
 import tensorflow as tf
+# import tensorboard 
+# from tensorboard import 
 
+class ALBertModelTest(tf.test.TestCase):
 
-class BertModelTest(tf.test.TestCase):
-
-  class BertModelTester(object):
+  class ALBertModelTester(object):
 
     def __init__(self,
                  parent,
@@ -39,9 +40,9 @@ class BertModelTest(tf.test.TestCase):
                  use_input_mask=True,
                  use_token_type_ids=True,
                  vocab_size=30522,
-                 hidden_size=768,
-                 num_hidden_layers=12,
-                 num_attention_heads=12,
+                 hidden_size=2048,
+                 num_hidden_layers=24,
+                 num_attention_heads=64,
                  intermediate_size=3072,
                  hidden_act="gelu",
                  hidden_dropout_prob=0.1,
@@ -70,20 +71,20 @@ class BertModelTest(tf.test.TestCase):
       self.scope = scope
 
     def create_model(self):
-      input_ids = BertModelTest.ids_tensor([self.batch_size, self.seq_length],
+      input_ids = ALBertModelTest.ids_tensor([self.batch_size, self.seq_length],
                                            self.vocab_size)
 
       input_mask = None
       if self.use_input_mask:
-        input_mask = BertModelTest.ids_tensor(
+        input_mask = ALBertModelTest.ids_tensor(
             [self.batch_size, self.seq_length], vocab_size=2)
 
       token_type_ids = None
       if self.use_token_type_ids:
-        token_type_ids = BertModelTest.ids_tensor(
+        token_type_ids = ALBertModelTest.ids_tensor(
             [self.batch_size, self.seq_length], self.type_vocab_size)
 
-      config = modeling.BertConfig(
+      config = modeling_albert.ALBertConfig(
           vocab_size=self.vocab_size,
           hidden_size=self.hidden_size,
           num_hidden_layers=self.num_hidden_layers,
@@ -96,7 +97,7 @@ class BertModelTest(tf.test.TestCase):
           type_vocab_size=self.type_vocab_size,
           initializer_range=self.initializer_range)
 
-      model = modeling.BertModel(
+      model = modeling_albert.ALBertModel(
           config=config,
           is_training=self.is_training,
           input_ids=input_ids,
@@ -110,6 +111,8 @@ class BertModelTest(tf.test.TestCase):
           "pooled_output": model.get_pooled_output(),
           "all_encoder_layers": model.get_all_encoder_layers(),
       }
+      print("output: ",outputs["embedding_output"])
+      pdb.set_trace()
       return outputs
 
     def check_output(self, result):
@@ -125,27 +128,31 @@ class BertModelTest(tf.test.TestCase):
                                  [self.batch_size, self.hidden_size])
 
   def test_default(self):
-    self.run_tester(BertModelTest.BertModelTester(self))
+    self.run_tester(ALBertModelTest.ALBertModelTester(self))
 
   def test_config_to_json_string(self):
-    config = modeling.BertConfig(vocab_size=99, hidden_size=37)
+    config = modeling_albert.ALBertConfig(vocab_size=30288, hidden_size=2048)
     obj = json.loads(config.to_json_string())
-    self.assertEqual(obj["vocab_size"], 99)
-    self.assertEqual(obj["hidden_size"], 37)
+    self.assertEqual(obj["vocab_size"], 30288)
+    self.assertEqual(obj["hidden_size"], 2048)
 
   def run_tester(self, tester):
     with self.test_session() as sess:
       ops = tester.create_model()
       init_op = tf.group(tf.compat.v1.global_variables_initializer(),
                          tf.compat.v1.local_variables_initializer())
-      sess.run(init_op)
-      output_result = sess.run(ops)
-      answer=np.sum([np.prod(v.shape) for v in tf.compat.v1.trainable_variables()])
+      answer=np.sum([np.prod(v.shape) for v in tf.trainable_variables()])
       print("total number:",answer)
-      train_writer = tf.compat.v1.summary.FileWriter('./train_bert', sess.graph)
+      pdb.set_trace()
+      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+      run_metadata = tf.RunMetadata()
+      sess.run(init_op,options=run_options,run_metadata=run_metadata)
+      train_writer = tf.compat.v1.summary.FileWriter('./train_albert', sess.graph)
+      output_result = sess.run(ops)
       tester.check_output(output_result)
 
       self.assert_all_tensors_reachable(sess, [init_op, ops])
+
 
   @classmethod
   def ids_tensor(cls, shape, vocab_size, rng=None, name=None):

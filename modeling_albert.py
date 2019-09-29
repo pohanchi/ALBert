@@ -28,14 +28,14 @@ import six
 import tensorflow as tf
 
 
-class BertConfig(object):
+class ALBertConfig(object):
   """Configuration for `BertModel`."""
 
   def __init__(self,
                vocab_size,
-               hidden_size=768,
+               hidden_size=128,
                num_hidden_layers=12,
-               num_attention_heads=12,
+               num_attention_heads=32,
                intermediate_size=3072,
                hidden_act="gelu",
                hidden_dropout_prob=0.1,
@@ -68,6 +68,7 @@ class BertConfig(object):
         initializing all weight matrices.
     """
     self.vocab_size = vocab_size
+    self.embedding_size = 128
     self.hidden_size = hidden_size
     self.num_hidden_layers = num_hidden_layers
     self.num_attention_heads = num_attention_heads
@@ -104,7 +105,7 @@ class BertConfig(object):
     return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
 
 
-class BertModel(object):
+class ALBertModel(object):
   """BERT model ("Bidirectional Encoder Representations from Transformers").
 
   Example usage:
@@ -174,7 +175,7 @@ class BertModel(object):
         (self.embedding_output, self.embedding_table) = embedding_lookup(
             input_ids=input_ids,
             vocab_size=config.vocab_size,
-            embedding_size=config.hidden_size,
+            embedding_size=config.embedding_size,
             initializer_range=config.initializer_range,
             word_embedding_name="word_embeddings",
             use_one_hot_embeddings=use_one_hot_embeddings)
@@ -812,9 +813,9 @@ def transformer_model(input_tensor,
 
   # The Transformer performs sum residuals on all layers so the input needs
   # to be the same as the hidden size.
-  if input_width != hidden_size:
-    raise ValueError("The width of the input tensor (%d) != hidden size (%d)" %
-                     (input_width, hidden_size))
+  # if input_width != hidden_size:
+  #   raise ValueError("The width of the input tensor (%d) != hidden size (%d)" %
+  #                    (input_width, hidden_size))
 
   # We keep the representation as a 2D tensor to avoid re-shaping it back and
   # forth from a 3D tensor to a 2D tensor. Re-shapes are normally free on
@@ -823,6 +824,7 @@ def transformer_model(input_tensor,
   prev_output = reshape_to_matrix(input_tensor)
 
   all_layer_outputs = []
+  prev_output = tf.layers.dense(prev_output,hidden_size,kernel_initializer=create_initializer(initializer_range))
   with tf.variable_scope("layers") as scope:
     for layer_idx in range(num_hidden_layers):
       layer_input = prev_output
@@ -868,8 +870,12 @@ def transformer_model(input_tensor,
       with tf.variable_scope("intermediate"):
         intermediate_output = tf.layers.dense(
             attention_output,
-            intermediate_size,
+            128,
             activation=intermediate_act_fn,
+            kernel_initializer=create_initializer(initializer_range))
+
+      with tf.variable_scope("smalltrick"):
+        intermediate_output = tf.layers.dense(attention_output,128,activation=intermediate_act_fn,
             kernel_initializer=create_initializer(initializer_range))
 
       # Down-project back to `hidden_size` then add the residual.
@@ -878,9 +884,7 @@ def transformer_model(input_tensor,
             intermediate_output,
             hidden_size,
             kernel_initializer=create_initializer(initializer_range))
-        layer_output = dropout(layer_output, hidden_dropout_prob)
         layer_output = layer_norm(layer_output + attention_output)
-        prev_output = layer_output
         all_layer_outputs.append(layer_output)
 
   if do_return_all_layers:
