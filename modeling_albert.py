@@ -753,9 +753,9 @@ def attention_layer(from_tensor,
 
 def transformer_model(input_tensor,
                       attention_mask=None,
-                      hidden_size=768,
-                      num_hidden_layers=8,
-                      num_attention_heads=12,
+                      hidden_size=2048,
+                      num_hidden_layers=12,
+                      num_attention_heads=32,
                       intermediate_size=3072,
                       intermediate_act_fn=gelu,
                       hidden_dropout_prob=0.1,
@@ -823,9 +823,13 @@ def transformer_model(input_tensor,
   prev_output = reshape_to_matrix(input_tensor)
 
   all_layer_outputs = []
-  for layer_idx in range(num_hidden_layers):
-    with tf.variable_scope("layer_%d" % layer_idx):
+  with tf.variable_scope("layers") as scope:
+    for layer_idx in range(num_hidden_layers):
       layer_input = prev_output
+      if layer_idx == 0:
+        pass
+      else:
+        scope.reuse_variables()
       with tf.variable_scope("attention"):
         attention_heads = []
         with tf.variable_scope("self"):
@@ -858,7 +862,6 @@ def transformer_model(input_tensor,
               attention_output,
               hidden_size,
               kernel_initializer=create_initializer(initializer_range))
-          attention_output = dropout(attention_output, hidden_dropout_prob)
           attention_output = layer_norm(attention_output + layer_input)
 
       # The activation is only applied to the "intermediate" hidden layer.
