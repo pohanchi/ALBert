@@ -4,10 +4,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+*vent
 # C extensions
 *.so
-*.ipynb
+*.pohan
 # Distribution / packaging
 .Python
 build/
