@@ -41,7 +41,7 @@ class ALBertModelTest(tf.test.TestCase):
                  use_token_type_ids=True,
                  vocab_size=30522,
                  hidden_size=2048,
-                 num_hidden_layers=24,
+                 num_hidden_layers=12,
                  num_attention_heads=64,
                  intermediate_size=3072,
                  hidden_act="gelu",
@@ -112,7 +112,6 @@ class ALBertModelTest(tf.test.TestCase):
           "all_encoder_layers": model.get_all_encoder_layers(),
       }
       print("output: ",outputs["embedding_output"])
-      pdb.set_trace()
       return outputs
 
     def check_output(self, result):
@@ -144,11 +143,10 @@ class ALBertModelTest(tf.test.TestCase):
       answer=np.sum([np.prod(v.shape) for v in tf.trainable_variables()])
       print("total number:",answer)
       pdb.set_trace()
-      run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-      run_metadata = tf.RunMetadata()
-      sess.run(init_op,options=run_options,run_metadata=run_metadata)
+      sess.run(init_op)
       train_writer = tf.compat.v1.summary.FileWriter('./train_albert', sess.graph)
       output_result = sess.run(ops)
+      pdb,set_trace()
       tester.check_output(output_result)
 
       self.assert_all_tensors_reachable(sess, [init_op, ops])

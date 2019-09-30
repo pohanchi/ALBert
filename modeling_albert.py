@@ -194,6 +194,9 @@ class ALBertModel(object):
             max_position_embeddings=config.max_position_embeddings,
             dropout_prob=config.hidden_dropout_prob)
 
+      with tf.variable_scope("factorized_embedding"):
+        self.embedding_output = tf.layers.dense(self.embedding_output, config.hidden_size,kernel_initializer=create_initializer(config.initializer_range))
+
       with tf.variable_scope("encoder"):
         # This converts a 2D mask of shape [batch_size, seq_length] to a 3D
         # mask of shape [batch_size, seq_length, seq_length] which is used
@@ -828,9 +831,7 @@ def transformer_model(input_tensor,
   with tf.variable_scope("layers") as scope:
     for layer_idx in range(num_hidden_layers):
       layer_input = prev_output
-      if layer_idx == 0:
-        pass
-      else:
+      if layer_idx > 0:
         scope.reuse_variables()
       with tf.variable_scope("attention"):
         attention_heads = []
@@ -870,14 +871,10 @@ def transformer_model(input_tensor,
       with tf.variable_scope("intermediate"):
         intermediate_output = tf.layers.dense(
             attention_output,
-            128,
+            intermediate_size,
             activation=intermediate_act_fn,
             kernel_initializer=create_initializer(initializer_range))
-
-      with tf.variable_scope("smalltrick"):
-        intermediate_output = tf.layers.dense(attention_output,128,activation=intermediate_act_fn,
-            kernel_initializer=create_initializer(initializer_range))
-
+            
       # Down-project back to `hidden_size` then add the residual.
       with tf.variable_scope("output"):
         layer_output = tf.layers.dense(
