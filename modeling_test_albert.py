@@ -36,7 +36,7 @@ class ALBertModelTest(tf.test.TestCase):
 
     def __init__(self,
                  parent,
-                 batch_size=32,
+                 batch_size=2,
                  seq_length=512,
                  is_training=True,
                  use_input_mask=True,
