@@ -1,4 +1,5 @@
 # coding=utf-8
+# export AUTOGRAPH_VERBOSITY=10
 # Copyright 2018 The Google AI Language Team Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +26,7 @@ import pdb
 import modeling_albert
 import six
 import tensorflow as tf
+from tensorflow.python.client import timeline
 # import tensorboard 
 # from tensorboard import 
 
@@ -136,20 +138,29 @@ class ALBertModelTest(tf.test.TestCase):
     self.assertEqual(obj["hidden_size"], 2048)
 
   def run_tester(self, tester):
-    with self.test_session() as sess:
-      ops = tester.create_model()
-      init_op = tf.group(tf.compat.v1.global_variables_initializer(),
-                         tf.compat.v1.local_variables_initializer())
-      answer=np.sum([np.prod(v.shape) for v in tf.trainable_variables()])
-      print("total number:",answer)
-      pdb.set_trace()
-      sess.run(init_op)
-      train_writer = tf.compat.v1.summary.FileWriter('./train_albert', sess.graph)
-      output_result = sess.run(ops)
-      pdb,set_trace()
-      tester.check_output(output_result)
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,log_device_placement=True))
+    ops = tester.create_model()
+    init_op = tf.group(tf.compat.v1.global_variables_initializer(),
+                        tf.compat.v1.local_variables_initializer())
+    answer=np.sum([np.prod(v.shape) for v in tf.compat.v1.trainable_variables()])
+    run_options = tf.compat.v1.RunOptions(trace_level=tf.compat.v1.RunOptions.FULL_TRACE)
+    run_metadata = tf.compat.v1.RunMetadata()
+    print("total number:",answer)
+    pdb.set_trace()
+    sess.run(init_op)
+    train_writer = tf.compat.v1.summary.FileWriter('./train_albert', sess.graph)
+    output_result = sess.run(ops,options=run_options,run_metadata=run_metadata)
+    train_writer.add_run_metadata(run_metadata, 'step%03d' % 0)
+    print('Adding run metadata for', 0)
+    tl = timeline.Timeline(run_metadata.step_stats)
+    print(tl.generate_chrome_trace_format(show_memory=True))
+    trace_file = tf.gfile.Open(name='timeline', mode='w')
+    trace_file.write(tl.generate_chrome_trace_format(show_memory=True))
+    pdb.set_trace()
+    tester.check_output(output_result)
 
-      self.assert_all_tensors_reachable(sess, [init_op, ops])
+    self.assert_all_tensors_reachable(sess, [init_op, ops])
 
 
   @classmethod
@@ -283,4 +294,5 @@ class ALBertModelTest(tf.test.TestCase):
 
 
 if __name__ == "__main__":
-  tf.test.main()
+  with tf.device("/device:GPU:0"):
+    tf.test.main()

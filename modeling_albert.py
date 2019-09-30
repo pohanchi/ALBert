@@ -169,8 +169,8 @@ class ALBertModel(object):
     if token_type_ids is None:
       token_type_ids = tf.zeros(shape=[batch_size, seq_length], dtype=tf.int32)
 
-    with tf.variable_scope(scope, default_name="bert"):
-      with tf.variable_scope("embeddings"):
+    with tf.compat.v1.variable_scope(scope, default_name="bert"):
+      with tf.compat.v1.variable_scope("embeddings"):
         # Perform embedding lookup on the word ids.
         (self.embedding_output, self.embedding_table) = embedding_lookup(
             input_ids=input_ids,
@@ -194,10 +194,10 @@ class ALBertModel(object):
             max_position_embeddings=config.max_position_embeddings,
             dropout_prob=config.hidden_dropout_prob)
 
-      with tf.variable_scope("factorized_embedding"):
+      with tf.compat.v1.variable_scope("factorized_embedding"):
         self.embedding_output = tf.layers.dense(self.embedding_output, config.hidden_size,kernel_initializer=create_initializer(config.initializer_range))
 
-      with tf.variable_scope("encoder"):
+      with tf.compat.v1.variable_scope("encoder"):
         # This converts a 2D mask of shape [batch_size, seq_length] to a 3D
         # mask of shape [batch_size, seq_length, seq_length] which is used
         # for the attention scores.
@@ -225,7 +225,7 @@ class ALBertModel(object):
       # [batch_size, hidden_size]. This is necessary for segment-level
       # (or segment-pair-level) classification tasks where we need a fixed
       # dimensional representation of the segment.
-      with tf.variable_scope("pooler"):
+      with tf.compat.v1.variable_scope("pooler"):
         # We "pool" the model by simply taking the hidden state corresponding
         # to the first token. We assume that this has been pre-trained
         first_token_tensor = tf.squeeze(self.sequence_output[:, 0:1, :], axis=1)
@@ -828,14 +828,14 @@ def transformer_model(input_tensor,
 
   all_layer_outputs = []
   prev_output = tf.layers.dense(prev_output,hidden_size,kernel_initializer=create_initializer(initializer_range))
-  with tf.variable_scope("layers") as scope:
-    for layer_idx in range(num_hidden_layers):
+  for layer_idx in range(num_hidden_layers):
+    
+    layer_num = "layer_shared"
+    with tf.compat.v1.variable_scope(layer_num,reuse=True if layer_idx> 0 else False):
       layer_input = prev_output
-      if layer_idx > 0:
-        scope.reuse_variables()
-      with tf.variable_scope("attention"):
+      with tf.compat.v1.variable_scope("attention"):
         attention_heads = []
-        with tf.variable_scope("self"):
+        with tf.compat.v1.variable_scope("self"):
           attention_head = attention_layer(
               from_tensor=layer_input,
               to_tensor=layer_input,
@@ -860,7 +860,7 @@ def transformer_model(input_tensor,
 
         # Run a linear projection of `hidden_size` then add a residual
         # with `layer_input`.
-        with tf.variable_scope("output"):
+        with tf.compat.v1.variable_scope("output"):
           attention_output = tf.layers.dense(
               attention_output,
               hidden_size,
@@ -868,7 +868,7 @@ def transformer_model(input_tensor,
           attention_output = layer_norm(attention_output + layer_input)
 
       # The activation is only applied to the "intermediate" hidden layer.
-      with tf.variable_scope("intermediate"):
+      with tf.compat.v1.variable_scope("intermediate"):
         intermediate_output = tf.layers.dense(
             attention_output,
             intermediate_size,
@@ -876,7 +876,7 @@ def transformer_model(input_tensor,
             kernel_initializer=create_initializer(initializer_range))
             
       # Down-project back to `hidden_size` then add the residual.
-      with tf.variable_scope("output"):
+      with tf.compat.v1.variable_scope("output"):
         layer_output = tf.layers.dense(
             intermediate_output,
             hidden_size,
