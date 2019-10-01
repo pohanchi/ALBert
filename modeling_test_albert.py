@@ -36,15 +36,15 @@ class ALBertModelTest(tf.test.TestCase):
 
     def __init__(self,
                  parent,
-                 batch_size=2,
+                 batch_size=8,
                  seq_length=512,
                  is_training=True,
                  use_input_mask=True,
                  use_token_type_ids=True,
                  vocab_size=30522,
-                 hidden_size=2048,
+                 hidden_size=768,
                  num_hidden_layers=12,
-                 num_attention_heads=64,
+                 num_attention_heads=12,
                  intermediate_size=3072,
                  hidden_act="gelu",
                  hidden_dropout_prob=0.1,
@@ -138,8 +138,8 @@ class ALBertModelTest(tf.test.TestCase):
     self.assertEqual(obj["hidden_size"], 2048)
 
   def run_tester(self, tester):
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
-    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options,log_device_placement=True))
+    # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
+    sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
     ops = tester.create_model()
     init_op = tf.group(tf.compat.v1.global_variables_initializer(),
                         tf.compat.v1.local_variables_initializer())
