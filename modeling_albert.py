@@ -34,6 +34,7 @@ class ALBertConfig(object):
   def __init__(self,
                vocab_size,
                hidden_size=128,
+               embedding_size=128,
                num_hidden_layers=12,
                num_attention_heads=32,
                intermediate_size=3072,
@@ -68,7 +69,7 @@ class ALBertConfig(object):
         initializing all weight matrices.
     """
     self.vocab_size = vocab_size
-    self.embedding_size = 128
+    self.embedding_size = embedding_size
     self.hidden_size = hidden_size
     self.num_hidden_layers = num_hidden_layers
     self.num_attention_heads = num_attention_heads
@@ -83,7 +84,7 @@ class ALBertConfig(object):
   @classmethod
   def from_dict(cls, json_object):
     """Constructs a `BertConfig` from a Python dictionary of parameters."""
-    config = BertConfig(vocab_size=None)
+    config = ALBertConfig(vocab_size=None)
     for (key, value) in six.iteritems(json_object):
       config.__dict__[key] = value
     return config
@@ -91,7 +92,7 @@ class ALBertConfig(object):
   @classmethod
   def from_json_file(cls, json_file):
     """Constructs a `BertConfig` from a json file of parameters."""
-    with tf.gfile.GFile(json_file, "r") as reader:
+    with tf.io.gfile.GFile(json_file, "r") as reader:
       text = reader.read()
     return cls.from_dict(json.loads(text))
 
@@ -122,7 +123,7 @@ class ALBertModel(object):
   model = modeling.BertModel(config=config, is_training=True,
     input_ids=input_ids, input_mask=input_mask, token_type_ids=token_type_ids)
 
-  label_embeddings = tf.get_variable(...)
+  label_embeddings = tf.compat.v1.get_variable(...)
   pooled_output = model.get_pooled_output()
   logits = tf.matmul(pooled_output, label_embeddings)
   ...
@@ -169,13 +170,14 @@ class ALBertModel(object):
     if token_type_ids is None:
       token_type_ids = tf.zeros(shape=[batch_size, seq_length], dtype=tf.int32)
 
-    with tf.compat.v1.variable_scope(scope, default_name="bert"):
+    with tf.compat.v1.variable_scope(scope, default_name="albert"):
       with tf.compat.v1.variable_scope("embeddings"):
         # Perform embedding lookup on the word ids.
-        (self.embedding_output, self.embedding_table) = embedding_lookup(
+        (self.embedding_output, self.embedding_table,self.embedding_table_2) = embedding_lookup(
             input_ids=input_ids,
             vocab_size=config.vocab_size,
             embedding_size=config.embedding_size,
+            hidden_size=config.hidden_size,
             initializer_range=config.initializer_range,
             word_embedding_name="word_embeddings",
             use_one_hot_embeddings=use_one_hot_embeddings)
@@ -193,10 +195,7 @@ class ALBertModel(object):
             initializer_range=config.initializer_range,
             max_position_embeddings=config.max_position_embeddings,
             dropout_prob=config.hidden_dropout_prob)
-
-      with tf.compat.v1.variable_scope("factorized_embedding"):
-        self.embedding_output = tf.layers.dense(self.embedding_output, config.hidden_size,kernel_initializer=create_initializer(config.initializer_range))
-
+  
       with tf.compat.v1.variable_scope("encoder"):
         # This converts a 2D mask of shape [batch_size, seq_length] to a 3D
         # mask of shape [batch_size, seq_length, seq_length] which is used
@@ -220,6 +219,8 @@ class ALBertModel(object):
             do_return_all_layers=True)
 
       self.sequence_output = self.all_encoder_layers[-1]
+      print("self.all_encoder_layers[-1]: ",self.all_encoder_layers[-1])
+      print("self.sequence_output: ",self.sequence_output)
       # The "pooler" converts the encoded sequence tensor of shape
       # [batch_size, seq_length, hidden_size] to a tensor of shape
       # [batch_size, hidden_size]. This is necessary for segment-level
@@ -264,6 +265,8 @@ class ALBertModel(object):
   def get_embedding_table(self):
     return self.embedding_table
 
+  def get_embedding2_table(self):
+    return self.embedding_table_2
 
 def gelu(x):
   """Gaussian Error Linear Unit.
@@ -384,8 +387,9 @@ def create_initializer(initializer_range=0.02):
 def embedding_lookup(input_ids,
                      vocab_size,
                      embedding_size=128,
+                     hidden_size=1024,
                      initializer_range=0.02,
-                     word_embedding_name="word_embeddings",
+                     word_embedding_name="factorize_embeddings",
                      use_one_hot_embeddings=False):
   """Looks up words embeddings for id tensor.
 
@@ -410,7 +414,7 @@ def embedding_lookup(input_ids,
   if input_ids.shape.ndims == 2:
     input_ids = tf.expand_dims(input_ids, axis=[-1])
 
-  embedding_table = tf.get_variable(
+  embedding_table = tf.compat.v1.get_variable(
       name=word_embedding_name,
       shape=[vocab_size, embedding_size],
       initializer=create_initializer(initializer_range))
@@ -418,15 +422,21 @@ def embedding_lookup(input_ids,
   flat_input_ids = tf.reshape(input_ids, [-1])
   if use_one_hot_embeddings:
     one_hot_input_ids = tf.one_hot(flat_input_ids, depth=vocab_size)
-    output = tf.matmul(one_hot_input_ids, embedding_table)
+    output_middle = tf.matmul(one_hot_input_ids, embedding_table)
   else:
-    output = tf.gather(embedding_table, flat_input_ids)
+    output_middle = tf.gather(embedding_table,flat_input_ids)
 
-  input_shape = get_shape_list(input_ids)
-
-  output = tf.reshape(output,
-                      input_shape[0:-1] + [input_shape[-1] * embedding_size])
-  return (output, embedding_table)
+  
+  project_variable = tf.get_variable(  # [embedding_size, hidden_size]
+        name=word_embedding_name+"_2",
+        shape=[embedding_size, hidden_size],
+        initializer=create_initializer(initializer_range))
+  output = tf.matmul(output_middle, project_variable) # ([batch_size * sequence_length, embedding_size] * [embedding_size, hidden_size])--->[batch_size * sequence_length, hidden_size]
+  
+  input_shape = get_shape_list(input_ids)  # input_shape=[ batch_size, seq_length, 1]
+  batch_size, sequene_length, _= input_shape
+  output = tf.reshape(output, (batch_size,sequene_length,hidden_size))
+  return (output, embedding_table,project_variable)
 
 
 def embedding_postprocessor(input_tensor,
@@ -477,7 +487,7 @@ def embedding_postprocessor(input_tensor,
     if token_type_ids is None:
       raise ValueError("`token_type_ids` must be specified if"
                        "`use_token_type` is True.")
-    token_type_table = tf.get_variable(
+    token_type_table = tf.compat.v1.get_variable(
         name=token_type_embedding_name,
         shape=[token_type_vocab_size, width],
         initializer=create_initializer(initializer_range))
@@ -491,9 +501,9 @@ def embedding_postprocessor(input_tensor,
     output += token_type_embeddings
 
   if use_position_embeddings:
-    assert_op = tf.assert_less_equal(seq_length, max_position_embeddings)
+    assert_op = tf.compat.v1.assert_less_equal(seq_length, max_position_embeddings)
     with tf.control_dependencies([assert_op]):
-      full_position_embeddings = tf.get_variable(
+      full_position_embeddings = tf.compat.v1.get_variable(
           name=position_embedding_name,
           shape=[max_position_embeddings, width],
           initializer=create_initializer(initializer_range))
@@ -982,7 +992,7 @@ def assert_rank(tensor, expected_rank, name=None):
 
   actual_rank = tensor.shape.ndims
   if actual_rank not in expected_rank_dict:
-    scope_name = tf.get_variable_scope().name
+    scope_name = tf.compat.v1.get_variable_scope().name
     raise ValueError(
         "For the tensor `%s` in scope `%s`, the actual rank "
         "`%d` (shape = %s) is not equal to the expected rank `%s`" %
