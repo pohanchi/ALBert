@@ -28,6 +28,13 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.txt
+*checkpoint 
+*.pbtxt
+*.meta
+*.index
+*.ckpt*
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
