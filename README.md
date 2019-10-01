@@ -16,3 +16,5 @@ Finish:
 
 To do:
     can train but the data you need to collect!!
+    
+python run_pretraining_albert.py -h [ you can run by yourself]
