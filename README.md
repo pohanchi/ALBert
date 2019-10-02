@@ -5,9 +5,9 @@
 This is A lite Bert reimlpementation.
 
 Three addition:
-* Add Lamb optimazation
-* Add factorization
-* Shared Parameter    -- Please refer to modeling_albert.py / optimization_albert.py
+* Add Lamb optimazation  -- optimization_albert.py
+* Add factorization     --modeling)albert (embedding_lookup_factorized)
+* Shared Parameter    -- Please refer to modeling_albert.py 
 
 To do:
 > Senetence Order Prediction didn't use ! now still the pretrained method is Next Sentence Preduction
