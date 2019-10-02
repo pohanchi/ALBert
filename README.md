@@ -10,7 +10,7 @@ Three addition:
 * Shared Parameter    -- Please refer to modeling_albert.py 
 
 To do:
-> Senetence Order Prediction didn't use ! now the pretrained method is still Next Sentence Preduction
+> Senetence Order Prediction didn't use ! now the pretrained method is still Next Sentence Prediction
 
 [2019/10/01] Now can train!!! you need to first generate bpe vocab.txt (Please refer to subword-nmt) and modify the syntax to collect your subword unit.
 
