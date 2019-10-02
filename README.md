@@ -6,7 +6,7 @@ This is A lite Bert reimlpementation.
 
 Three addition:
 * Add Lamb optimazation  -- optimization_albert.py
-* Add factorization     --modeling)albert (embedding_lookup_factorized)
+* Add factorization     --modeling_albert (embedding_lookup_factorized)
 * Shared Parameter    -- Please refer to modeling_albert.py 
 
 To do:
