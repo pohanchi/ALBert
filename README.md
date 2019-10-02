@@ -13,7 +13,7 @@ Three addition:
 
 ## Overview 
 First your need to download your data {Wikipedia or BookCorpus}, then 
-* use subword-nmt [(github)][(https://github.com/rsennrich/subword-nmt) to generate code.bpe, 
+* use subword-nmt [github](https://github.com/rsennrich/subword-nmt) to generate code.bpe, 
 * use code.bpe generate vocab.txt then you can train~.
 
 
