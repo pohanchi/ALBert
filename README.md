@@ -17,5 +17,5 @@ Finish:
 To do:
     can train but the data you need to collect!!
 
-How to run ??
+How to run ?? <br>
 `python rim_albert_pretraining --input_file {training data}  --bert_config_file config.json --output_dir {your path}`
