@@ -18,4 +18,4 @@ To do:
     can train but the data you need to collect!!
 
 How to run ??
-''' python rim_albert_pretraining --input_file {training data}  --bert_config_file config.json --output_dir {your path}'''
+`python rim_albert_pretraining --input_file {training data}  --bert_config_file config.json --output_dir {your path}`
