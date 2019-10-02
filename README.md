@@ -19,10 +19,11 @@ First your need to download your data {Wikipedia or BookCorpus}, then
 * use subword-nmt [github](https://github.com/rsennrich/subword-nmt) to generate code.bpe, 
 * use code.bpe generate vocab.txt then you can train~.
 
-Finish:
+[Finish]:
     On testing can validate that the total parameter will not increasing although increase layer number.
-
-To do:
-    can train but the data you need to collect!!
+[Finish]:
+    can train using below code
+[To do]:
+    you need to collect data
 
 `python rim_albert_pretraining --input_file {training data}  --bert_config_file config.json --output_dir {your path}`
