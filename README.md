@@ -2,7 +2,7 @@
 
 ## A Lite BERT reimplmentation
 
-This is A lite Bert reimlpementation.
+This is A lite Bert reimlpementation which modify from google-research/bert
 
 Three addition:
 * Add Lamb optimazation  -- optimization_albert.py
