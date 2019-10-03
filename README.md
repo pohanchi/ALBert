@@ -26,4 +26,4 @@ First your need to download your data {Wikipedia or BookCorpus}, then
 [To do]:
     you need to collect data
 
-`python rim_albert_pretraining --input_file {training data}  --bert_config_file config.json --output_dir {your path}`
+`python run_albert_pretraining --input_file {training data}  --bert_config_file config.json --output_dir {your path}`
