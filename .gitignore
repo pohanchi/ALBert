@@ -10,6 +10,7 @@ __pycache__/
 *.pohan
 *.csv
 *.xml
+*.gz
 # Distribution / packaging
 .Python
 build/
